@@ -1,33 +1,32 @@
 header {
-    position: sticky;
-    top: 0;
-    
-    background: deeppink;
-    color: white;
-    padding-left: 32px; 
-    padding-right: 32px; 
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  main {
-    padding: 32px;
-  }
-  
-  ul {
-    list-style-type: none;
-    padding: 0;
-  }
-  
-  li {
-    display: inline-block;
-    margin-left: 16px;
-    font-size: 18px;
-    font-weight: bold;
-  }
-  
-  html {
-    height: 200%;
-    line-height: 1.6;
-  }
+  position: sticky;
+  top: 0;
+  border-color: black;
+  border: 4px;
+  background: red;
+  color: black;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+main {
+  padding: 32px;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+li {
+  display: inline-block;
+  margin-left: 16px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+html {
+  height: 200%;
+  line-height: 1.6;
+}
