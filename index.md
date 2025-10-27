@@ -1,8 +1,8 @@
 ---
-layout: home
+layout: default
+title: "Happy Jekylling!"
 ---
 
-Welcome to **ccomet**'s blog.
+## You're ready to go!
 
-- Posts live under `_posts/` (YYYY-MM-DD-title.md).
-- Edit this page at `index.md`.
+Start developing your Jekyll website.
