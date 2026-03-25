@@ -1,0 +1,740 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Focus Gate Prototype</title>
+  <meta name="description" content="앱 실행 전 AI가 사용 의도를 판단하는 디지털 웰빙 앱 프로토타입" />
+  <style>
+    :root {
+      --bg: #06080d;
+      --bg-2: #0b1018;
+      --card: rgba(255,255,255,0.06);
+      --card-2: rgba(255,255,255,0.08);
+      --line: rgba(255,255,255,0.12);
+      --text: #f5f7fb;
+      --muted: rgba(245,247,251,0.62);
+      --muted-2: rgba(245,247,251,0.38);
+      --green: #24d08a;
+      --green-2: #1ab872;
+      --amber: #f7b548;
+      --blue: #7ea7ff;
+      --shadow: 0 20px 60px rgba(0,0,0,0.35);
+      --radius-xl: 34px;
+      --radius-lg: 26px;
+      --radius-md: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top, rgba(36,208,138,0.1), transparent 32%),
+        linear-gradient(180deg, #0a0f18 0%, #06080d 38%, #06080d 100%);
+      color: var(--text);
+      font-family: Inter, Pretendard, "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      padding: 24px 16px;
+    }
+
+    .phone {
+      width: min(100%, 430px);
+      min-height: calc(100vh - 48px);
+      background: linear-gradient(180deg, rgba(11,16,24,0.9), rgba(6,8,13,0.98));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 36px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+      isolation: isolate;
+    }
+
+    .phone::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 0%, rgba(36,208,138,0.08), transparent 28%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .statusbar {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      padding: 18px 22px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--muted);
+      background: linear-gradient(180deg, rgba(6,8,13,0.96), rgba(6,8,13,0.3), transparent);
+      backdrop-filter: blur(10px);
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      min-height: calc(100vh - 48px);
+      padding: 8px 22px 22px;
+      display: none;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .page.active { display: flex; }
+
+    .topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .chip-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      background: var(--card);
+      border: 1px solid var(--line);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .chip.active,
+    .chip:hover {
+      background: rgba(36,208,138,0.12);
+      border-color: rgba(36,208,138,0.32);
+    }
+
+    .app-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      width: fit-content;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 18px;
+      padding: 10px 14px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .app-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04));
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 18px;
+      padding-top: 14px;
+    }
+
+    .mascot-wrap {
+      position: relative;
+      width: 128px;
+      height: 128px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at 50% 35%, rgba(36,208,138,0.22), rgba(36,208,138,0.06));
+      border: 1px solid rgba(36,208,138,0.18);
+      box-shadow: inset 0 0 40px rgba(36,208,138,0.06);
+    }
+
+    .mascot {
+      font-size: 72px;
+      filter: drop-shadow(0 10px 24px rgba(0,0,0,0.28));
+    }
+
+    .speech {
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 12px 16px;
+      color: var(--text);
+      font-size: 16px;
+      line-height: 1.45;
+      max-width: 280px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(34px, 5vw, 42px);
+      line-height: 1.16;
+      letter-spacing: -0.03em;
+      font-weight: 800;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .sub {
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.04));
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: var(--radius-xl);
+      padding: 20px;
+      backdrop-filter: blur(12px);
+    }
+
+    .question-card {
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 22px;
+    }
+
+    .question-label {
+      color: var(--green);
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .question-text {
+      font-size: 18px;
+      line-height: 1.55;
+      color: var(--text);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 172px;
+      resize: none;
+      border: 0;
+      outline: none;
+      border-radius: 24px;
+      padding: 20px;
+      color: var(--text);
+      background: rgba(255,255,255,0.04);
+      font: inherit;
+      line-height: 1.6;
+    }
+
+    textarea::placeholder { color: rgba(245,247,251,0.30); }
+
+    .quick-title {
+      color: var(--muted-2);
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+
+    .footer-cta {
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-top: 8px;
+    }
+
+    .button, .secondary-btn, .ghost-btn {
+      width: 100%;
+      border: 0;
+      border-radius: 22px;
+      padding: 18px 20px;
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .button {
+      color: #04130d;
+      background: linear-gradient(180deg, var(--green), var(--green-2));
+      box-shadow: 0 12px 30px rgba(36,208,138,0.28);
+    }
+
+    .button:hover { transform: translateY(-1px); }
+    .button:disabled {
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.28);
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .secondary-btn {
+      background: rgba(255,255,255,0.10);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.16);
+    }
+
+    .ghost-btn {
+      background: transparent;
+      color: var(--muted);
+      border: 1px dashed rgba(255,255,255,0.16);
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .thinking {
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 22px;
+    }
+
+    .pulse {
+      animation: pulse 1.7s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.86; }
+      50% { transform: scale(1.08); opacity: 1; }
+    }
+
+    .dots {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(36,208,138,0.35);
+      animation: bounce 1.4s infinite ease-in-out;
+    }
+    .dot:nth-child(2) { animation-delay: 0.18s; }
+    .dot:nth-child(3) { animation-delay: 0.36s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
+      40% { transform: translateY(-10px); opacity: 1; }
+    }
+
+    .result-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 700;
+      width: fit-content;
+    }
+
+    .score-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 20px;
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .score-label { color: var(--muted); font-size: 14px; }
+    .score-value { font-size: 34px; font-weight: 800; letter-spacing: -0.03em; }
+
+    .reason-box {
+      padding: 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 22px;
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    .list {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .allowed { background: rgba(36,208,138,0.12); color: var(--green); border: 1px solid rgba(36,208,138,0.24); }
+    .limited { background: rgba(247,181,72,0.12); color: var(--amber); border: 1px solid rgba(247,181,72,0.22); }
+    .blocked { background: rgba(126,167,255,0.12); color: var(--blue); border: 1px solid rgba(126,167,255,0.22); }
+
+    .small {
+      font-size: 13px;
+      color: var(--muted-2);
+      line-height: 1.55;
+    }
+
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+      margin: 6px 0;
+    }
+
+    .hide { display: none !important; }
+
+    @media (max-width: 480px) {
+      body { padding: 0; }
+      .phone {
+        width: 100%;
+        min-height: 100vh;
+        border-radius: 0;
+        border: 0;
+      }
+      .page { min-height: 100vh; padding-bottom: calc(22px + env(safe-area-inset-bottom)); }
+    }
+  </style>
+</head>
+<body>
+  <main class="phone">
+    <div class="statusbar">
+      <span>9:41</span>
+      <span>AI Focus Gate</span>
+      <span>●●●</span>
+    </div>
+
+    <section class="page active" id="page-blocking">
+      <div class="topline">
+        <span class="app-pill"><span class="app-icon" id="blocking-app-icon">📸</span><span id="blocking-app-name">Instagram</span></span>
+        <span>실행 직전 확인</span>
+      </div>
+
+      <div class="hero">
+        <div class="speech">앱을 바로 여는 대신, 지금의 의도를 먼저 확인해볼게요.</div>
+        <div class="mascot-wrap"><div class="mascot">🌿</div></div>
+        <h1>지금 정말 <span id="blocking-app-name-big">Instagram</span>이 필요한가요?</h1>
+        <p class="sub">답변을 바탕으로 AI가 <strong>사용 허용</strong>, <strong>10분 제한</strong>, <strong>지금은 닫기</strong> 중 하나를 결정합니다.</p>
+      </div>
+
+      <div class="card question-card">
+        <div class="question-label">이 서비스의 핵심 기능</div>
+        <div class="question-text">앱 실행 시 질문을 던지고, 사용 목적에 대한 답변을 받은 뒤 AI가 지금 이 앱을 써도 되는지 판단합니다.</div>
+      </div>
+
+      <div class="footer-cta">
+        <button class="button" id="start-button">답변하고 판단받기</button>
+      </div>
+    </section>
+
+    <section class="page" id="page-answer">
+      <div class="topline">
+        <button class="chip" id="back-to-start">← 뒤로</button>
+        <span>의도 입력</span>
+      </div>
+
+      <div class="card">
+        <div class="question-label" id="answer-app-name">Instagram 실행 요청</div>
+        <h2 style="margin-top:8px;">왜 지금 이 앱을 열려고 하나요?</h2>
+        <p class="sub" style="margin-top:8px;">가능하면 구체적으로 적어주세요. AI는 답변의 구체성, 필요성, 충동성 표현을 기준으로 판단합니다.</p>
+      </div>
+
+      <div class="card">
+        <textarea id="answer-input" placeholder="예: 친구가 보낸 중요한 메시지에 답장해야 해요. 또는 과제 참고 자료를 찾으려고요."></textarea>
+      </div>
+
+      <div>
+        <div class="quick-title">빠른 입력</div>
+        <div class="chip-row" id="quick-responses">
+          <button class="chip" data-answer="친구가 보낸 중요한 메시지에 답장해야 해요">답장하려고요</button>
+          <button class="chip" data-answer="과제 때문에 필요한 자료를 찾으려고요">과제/자료 검색</button>
+          <button class="chip" data-answer="잠깐 확인만 하고 10분 안에 끌게요">잠깐만 확인</button>
+          <button class="chip" data-answer="그냥 습관적으로 열고 싶었어요">습관적으로요</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="quick-title">앱 바꾸기</div>
+        <div class="chip-row" id="app-selector">
+          <button class="chip active" data-app="Instagram" data-icon="📸">Instagram</button>
+          <button class="chip" data-app="YouTube" data-icon="▶️">YouTube</button>
+          <button class="chip" data-app="TikTok" data-icon="🎵">TikTok</button>
+          <button class="chip" data-app="X" data-icon="✕">X</button>
+        </div>
+      </div>
+
+      <div class="footer-cta">
+        <button class="button" id="submit-button" disabled>AI에게 보내기</button>
+      </div>
+    </section>
+
+    <section class="page thinking" id="page-thinking">
+      <div class="speech">사용 목적을 해석하고 있어요.</div>
+      <div class="mascot-wrap pulse"><div class="mascot">🌿</div></div>
+      <h1 style="font-size:32px;">판단 중</h1>
+      <p class="sub">지금 꼭 필요한 사용인지, 잠깐 허용이 적절한지, 아니면 닫는 편이 나은지 검토하고 있어요.</p>
+      <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+    </section>
+
+    <section class="page" id="page-result">
+      <div class="topline">
+        <span class="app-pill"><span class="app-icon" id="result-app-icon">📸</span><span id="result-app-name">Instagram</span></span>
+        <span>AI 결과</span>
+      </div>
+
+      <div class="hero" style="align-items:flex-start; text-align:left;">
+        <div class="result-badge allowed" id="result-badge">사용 가능</div>
+        <h1 id="result-title">지금은 사용해도 괜찮아요</h1>
+        <p class="sub" id="result-sub">현재 목적이 비교적 구체적이고 필요한 상황으로 보여요.</p>
+      </div>
+
+      <div class="score-card">
+        <div>
+          <div class="score-label">AI 판단 점수</div>
+          <div class="score-value" id="score-value">8 / 10</div>
+        </div>
+        <div class="app-icon" id="score-app-icon">📸</div>
+      </div>
+
+      <div class="card">
+        <div class="question-label">입력한 답변</div>
+        <div class="reason-box" id="user-answer-box">친구가 보낸 중요한 메시지에 답장해야 해요.</div>
+      </div>
+
+      <div class="card">
+        <div class="question-label">AI가 본 핵심 포인트</div>
+        <ul class="list" id="reasons-list"></ul>
+        <div class="divider"></div>
+        <div class="small" id="decision-note">정교한 실제 AI 대신, 발표용 프로토타입답게 규칙 기반 판단으로 동작합니다.</div>
+      </div>
+
+      <div class="footer-cta">
+        <button class="button" id="primary-result-button">앱 사용하기</button>
+        <button class="secondary-btn" id="retry-button">다시 시도</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const pages = {
+      blocking: document.getElementById('page-blocking'),
+      answer: document.getElementById('page-answer'),
+      thinking: document.getElementById('page-thinking'),
+      result: document.getElementById('page-result'),
+    };
+
+    const state = {
+      appName: 'Instagram',
+      appIcon: '📸',
+      answer: '',
+      score: 0,
+      decision: 'full',
+    };
+
+    const APP_QUESTION = {
+      Instagram: '지금 정말 Instagram이 필요한가요?',
+      YouTube: '지금 정말 YouTube를 열어야 하나요?',
+      TikTok: '지금 TikTok을 봐야 하는 이유가 있나요?',
+      X: '지금 X를 확인해야 할 만큼 급한 상황인가요?'
+    };
+
+    function showPage(name) {
+      Object.values(pages).forEach(page => page.classList.remove('active'));
+      pages[name].classList.add('active');
+    }
+
+    function updateAppUI() {
+      document.getElementById('blocking-app-name').textContent = state.appName;
+      document.getElementById('blocking-app-name-big').textContent = state.appName;
+      document.getElementById('blocking-app-icon').textContent = state.appIcon;
+      document.getElementById('answer-app-name').textContent = state.appName + ' 실행 요청';
+      document.getElementById('result-app-name').textContent = state.appName;
+      document.getElementById('result-app-icon').textContent = state.appIcon;
+      document.getElementById('score-app-icon').textContent = state.appIcon;
+    }
+
+    function analyzeAnswer(answer) {
+      const text = (answer || '').trim().toLowerCase();
+      let score = 3;
+      const notes = [];
+
+      const highWords = ['과제', '공부', '업무', '일', '회의', '발표', '자료', '검색', '답장', '메시지', '연락', '전화', '확인', '예약', '결제', '길찾기', 'urgent', 'important', 'message', 'reply', 'work', 'assignment'];
+      const mediumWords = ['잠깐', '조금', '짧게', '확인만', '10분', '잠시', 'break', 'quick', 'check'];
+      const lowWords = ['그냥', '습관', '무의식', '심심', '릴스', '쇼츠', '시간때우기', '재미', '볼까', 'scroll', 'killing time', 'bored'];
+
+      let highCount = 0;
+      let mediumCount = 0;
+      let lowCount = 0;
+
+      highWords.forEach(word => { if (text.includes(word)) highCount += 1; });
+      mediumWords.forEach(word => { if (text.includes(word)) mediumCount += 1; });
+      lowWords.forEach(word => { if (text.includes(word)) lowCount += 1; });
+
+      if (text.length >= 18) {
+        score += 1;
+        notes.push('답변이 너무 짧지 않아 어느 정도 구체성이 있어 보입니다.');
+      }
+
+      if (highCount > 0) {
+        score += Math.min(4, highCount + 2);
+        notes.push('필요성이나 목적성을 드러내는 단어가 포함되어 있습니다.');
+      }
+
+      if (mediumCount > 0) {
+        score += Math.min(2, mediumCount);
+        notes.push('짧게 확인하려는 의도가 보여 제한적 사용이 적절할 수 있습니다.');
+      }
+
+      if (lowCount > 0) {
+        score -= Math.min(4, lowCount + 1);
+        notes.push('충동적 사용으로 해석될 수 있는 표현이 포함되어 있습니다.');
+      }
+
+      if (/\?|ㅎㅎ|ㅋㅋ/.test(text)) {
+        score -= 1;
+        notes.push('가벼운 감정 표현은 긴급성이 낮은 신호로 해석했습니다.');
+      }
+
+      score = Math.max(0, Math.min(10, score));
+
+      let decision = 'blocked';
+      if (score >= 8) decision = 'full';
+      else if (score >= 4) decision = 'limited';
+
+      if (notes.length === 0) {
+        notes.push('뚜렷한 목적이 드러나지 않아 보수적으로 판단했습니다.');
+      }
+
+      return { score, decision, notes };
+    }
+
+    function renderResult() {
+      const resultBadge = document.getElementById('result-badge');
+      const resultTitle = document.getElementById('result-title');
+      const resultSub = document.getElementById('result-sub');
+      const scoreValue = document.getElementById('score-value');
+      const primaryResultButton = document.getElementById('primary-result-button');
+      const userAnswerBox = document.getElementById('user-answer-box');
+      const reasonsList = document.getElementById('reasons-list');
+      const decisionNote = document.getElementById('decision-note');
+
+      userAnswerBox.textContent = state.answer;
+      scoreValue.textContent = state.score + ' / 10';
+      reasonsList.innerHTML = '';
+      state.notes.forEach(note => {
+        const li = document.createElement('li');
+        li.textContent = note;
+        reasonsList.appendChild(li);
+      });
+
+      resultBadge.className = 'result-badge';
+
+      primaryResultButton.style.background = '';
+      primaryResultButton.style.boxShadow = '';
+
+      if (state.decision === 'full') {
+        resultBadge.classList.add('allowed');
+        resultBadge.textContent = '사용 가능';
+        resultTitle.textContent = '지금은 사용해도 괜찮아요';
+        resultSub.textContent = '현재 목적이 비교적 구체적이고 필요한 상황으로 보여요.';
+        primaryResultButton.textContent = state.appName + ' 사용하기';
+        primaryResultButton.className = 'button';
+        decisionNote.textContent = '실제 구현에서는 이 단계에서 전체 사용을 허용하고, 다음 진입 전 다시 질문하도록 연결할 수 있습니다.';
+      } else if (state.decision === 'limited') {
+        resultBadge.classList.add('limited');
+        resultBadge.textContent = '10분만 허용';
+        resultTitle.textContent = '잠깐만 사용하는 것이 좋아 보여요';
+        resultSub.textContent = '지금은 완전히 불필요하진 않지만, 오래 사용할 필요는 없어 보여요.';
+        primaryResultButton.textContent = '10분만 사용하기';
+        primaryResultButton.className = 'button';
+        primaryResultButton.style.background = 'linear-gradient(180deg, #f7b548, #e7a02d)';
+        primaryResultButton.style.boxShadow = '0 12px 30px rgba(247,181,72,0.22)';
+        decisionNote.textContent = '발표용 설명에서는 “중간 점수인 경우 10분 후 자동 종료” 흐름을 연결하면 됩니다.';
+      } else {
+        resultBadge.classList.add('blocked');
+        resultBadge.textContent = '지금은 닫기 권장';
+        resultTitle.textContent = '지금은 열지 않는 게 좋아요';
+        resultSub.textContent = '현재 답변만으로는 꼭 필요한 사용이라고 보기 어려워요.';
+        primaryResultButton.textContent = '앱 닫기';
+        primaryResultButton.className = 'secondary-btn';
+        primaryResultButton.style.background = 'rgba(255,255,255,0.10)';
+        primaryResultButton.style.boxShadow = 'none';
+        decisionNote.textContent = '이 분기는 충동적 사용을 줄이는 역할입니다. 필요하면 “다시 답변하기”로 재평가도 가능합니다.';
+      }
+    }
+
+    updateAppUI();
+
+    document.querySelectorAll('#app-selector .chip').forEach(button => {
+      button.addEventListener('click', () => {
+        document.querySelectorAll('#app-selector .chip').forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        state.appName = button.dataset.app;
+        state.appIcon = button.dataset.icon;
+        updateAppUI();
+      });
+    });
+
+    const answerInput = document.getElementById('answer-input');
+    const submitButton = document.getElementById('submit-button');
+
+    answerInput.addEventListener('input', () => {
+      submitButton.disabled = !answerInput.value.trim();
+    });
+
+    document.querySelectorAll('#quick-responses .chip').forEach(button => {
+      button.addEventListener('click', () => {
+        answerInput.value = button.dataset.answer || '';
+        submitButton.disabled = !answerInput.value.trim();
+      });
+    });
+
+    document.getElementById('start-button').addEventListener('click', () => showPage('answer'));
+    document.getElementById('back-to-start').addEventListener('click', () => showPage('blocking'));
+
+    submitButton.addEventListener('click', () => {
+      state.answer = answerInput.value.trim();
+      const result = analyzeAnswer(state.answer);
+      state.score = result.score;
+      state.decision = result.decision;
+      state.notes = result.notes;
+      showPage('thinking');
+      setTimeout(() => {
+        renderResult();
+        showPage('result');
+      }, 1500);
+    });
+
+    document.getElementById('retry-button').addEventListener('click', () => {
+      answerInput.value = state.answer;
+      submitButton.disabled = !answerInput.value.trim();
+      showPage('answer');
+    });
+
+    document.getElementById('primary-result-button').addEventListener('click', () => {
+      answerInput.value = '';
+      submitButton.disabled = true;
+      showPage('blocking');
+    });
+  </script>
+</body>
+</html>
